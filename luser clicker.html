@@ -1,0 +1,272 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<title>Clicker 67</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+<style>
+body {
+    margin: 0;
+    font-family: Arial, sans-serif;
+    text-align: center;
+    color: white;
+    background: linear-gradient(135deg, gold, #ffcc00, #ffd700);
+    overflow-x: hidden;
+}
+
+/* Brienrot 67 volando */
+#fly {
+    position: fixed;
+    top: 50px;
+    left: -150px;
+    font-size: 50px;
+    animation: flyAcross 12s linear infinite;
+    pointer-events: none;
+}
+
+@keyframes flyAcross {
+    from { left: -150px; top: 50px; }
+    to { left: 110%; top: 120px; }
+}
+
+#menu, #game {
+    display: none;
+    padding: 10px;
+}
+
+button {
+    padding: 12px 20px;
+    font-size: 16px;
+    background: #00c3ff;
+    border: none;
+    border-radius: 10px;
+    cursor: pointer;
+    margin: 5px;
+}
+
+button:hover {
+    background: #00ffae;
+}
+
+#character-container {
+    position: relative;
+    display: inline-block;
+}
+
+#player {
+    width: 140px;
+    cursor: pointer;
+    transition: transform 0.1s, filter 0.2s;
+}
+
+#hat {
+    position: absolute;
+    width: 80px;
+    top: -5px;
+    left: 30px;
+    display: none;
+}
+
+#shirt {
+    position: absolute;
+    width: 110px;
+    top: 60px;
+    left: 15px;
+    display: none;
+}
+
+.particle {
+    position: absolute;
+    width: 8px;
+    height: 8px;
+    background: yellow;
+    border-radius: 50%;
+    pointer-events: none;
+    animation: fly 0.8s forwards;
+}
+
+@keyframes fly {
+    from {opacity:1; transform: translate(0,0);}
+    to {opacity:0; transform: translate(var(--x), var(--y));}
+}
+
+#achievements {
+    background: rgba(0,0,0,0.5);
+    padding:10px;
+    border-radius:10px;
+    margin-top:10px;
+}
+</style>
+</head>
+<body>
+
+<!-- Brienrot 67 volando -->
+<div id="fly">🛸67</div>
+
+<div id="menu">
+    <h1>🎮 CLICKER 67</h1>
+    <button onclick="startGame()">▶ Jugar</button>
+    <button onclick="resetGame()">🗑 Resetear</button>
+</div>
+
+<div id="game">
+    <h2>Puntos: <span id="points">0</span></h2>
+    <h2>Monedas: 🪙 <span id="coins">0</span></h2>
+
+    <div id="character-container">
+        <img id="player" src="amongus.png">
+        <img id="hat" src="https://i.imgur.com/3vQJQ6U.png">
+        <img id="shirt" src="https://i.imgur.com/8z2ZK9v.png">
+    </div>
+
+    <p>Toca al personaje 👆</p>
+
+    <button onclick="buyUpgrade()">Mejorar click (+1) - <span id="cost">10</span> puntos</button>
+
+    <h3>🛒 Tienda</h3>
+    <button onclick="buyHat()">🎩 Sombrero (5🪙)</button>
+    <button onclick="buyShirt()">👕 Camisa (8🪙)</button>
+    <br>
+    <button onclick="toggleHat()">Usar/Quitar sombrero</button>
+    <button onclick="toggleShirt()">Usar/Quitar camisa</button>
+
+    <div id="achievements">
+        <h3>🏆 Logros</h3>
+        <p id="ach1">❌ 100 puntos</p>
+        <p id="ach2">❌ Comprar sombrero</p>
+        <p id="ach3">❌ Comprar camisa</p>
+    </div>
+
+    <button onclick="backToMenu()">⬅ Menú</button>
+</div>
+
+<audio id="clickSound" src="https://www.soundjay.com/buttons/sounds/button-16.mp3"></audio>
+<audio id="buySound" src="https://www.soundjay.com/buttons/sounds/button-09.mp3"></audio>
+
+<script>
+let points=0, coins=0, clickPower=1, upgradeCost=10, hue=0;
+let hasHat=false, hasShirt=false;
+let ach1=false, ach2=false, ach3=false;
+
+const menu=document.getElementById("menu");
+const game=document.getElementById("game");
+const player=document.getElementById("player");
+const hat=document.getElementById("hat");
+const shirt=document.getElementById("shirt");
+
+const pointsText=document.getElementById("points");
+const coinsText=document.getElementById("coins");
+const costText=document.getElementById("cost");
+
+const clickSound=document.getElementById("clickSound");
+const buySound=document.getElementById("buySound");
+
+menu.style.display="block";
+
+function startGame(){
+    menu.style.display="none";
+    game.style.display="block";
+    updateUI();
+    updateClothes();
+    updateAchievements();
+}
+
+function backToMenu(){
+    game.style.display="none";
+    menu.style.display="block";
+}
+
+player.addEventListener("click",(e)=>{
+    clickSound.currentTime=0;
+    clickSound.play();
+    points+=clickPower;
+    if(points%10===0) coins++;
+    hue+=40;
+    player.style.filter=`hue-rotate(${hue}deg)`;
+    spawnParticles(e.clientX,e.clientY);
+    checkAchievements();
+    updateUI();
+});
+
+function buyUpgrade(){
+    if(points>=upgradeCost){
+        buySound.play();
+        points-=upgradeCost;
+        clickPower++;
+        upgradeCost+=10;
+        updateUI();
+    }
+}
+
+function buyHat(){
+    if(coins>=5 && !hasHat){
+        coins-=5;
+        hasHat=true;
+        buySound.play();
+        updateClothes();
+        checkAchievements();
+    }
+}
+
+function buyShirt(){
+    if(coins>=8 && !hasShirt){
+        coins-=8;
+        hasShirt=true;
+        buySound.play();
+        updateClothes();
+        checkAchievements();
+    }
+}
+
+function toggleHat(){ if(hasHat) hat.style.display=hat.style.display==="none"?"block":"none"; }
+function toggleShirt(){ if(hasShirt) shirt.style.display=shirt.style.display==="none"?"block":"none"; }
+
+function updateClothes(){
+    hat.style.display=hasHat?"block":"none";
+    shirt.style.display=hasShirt?"block":"none";
+}
+
+function spawnParticles(x,y){
+    for(let i=0;i<6;i++){
+        const p=document.createElement("div");
+        p.className="particle";
+        const dx=(Math.random()*100-50)+"px";
+        const dy=(Math.random()*100-50)+"px";
+        p.style.left=x+"px";
+        p.style.top=y+"px";
+        p.style.setProperty("--x",dx);
+        p.style.setProperty("--y",dy);
+        document.body.appendChild(p);
+        setTimeout(()=>p.remove(),800);
+    }
+}
+
+function checkAchievements(){
+    if(points>=100) ach1=true;
+    if(hasHat) ach2=true;
+    if(hasShirt) ach3=true;
+    updateAchievements();
+}
+
+function updateAchievements(){
+    document.getElementById("ach1").textContent = ach1?"✅ 100 puntos":"❌ 100 puntos";
+    document.getElementById("ach2").textContent = ach2?"✅ Comprar sombrero":"❌ Comprar sombrero";
+    document.getElementById("ach3").textContent = ach3?"✅ Comprar camisa":"❌ Comprar camisa";
+}
+
+function updateUI(){
+    pointsText.textContent=points;
+    coinsText.textContent=coins;
+    costText.textContent=upgradeCost;
+}
+
+function resetGame(){
+    if(confirm("¿Seguro?")){
+        location.reload();
+    }
+}
+</script>
+
+</body>
+</html>
